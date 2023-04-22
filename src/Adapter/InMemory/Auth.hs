@@ -5,12 +5,17 @@
 {-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}
 
 module Adapter.InMemory.Auth
-  ( addAuth,
+  ( 
+    State(..),
+    initialState,
+    addAuth,
     setEmailAsVerified,
     findUserByAuth,
+    findEmailFromUserId,
     notifyEmailVerification,
     newSession,
     findUserIdBySessionId,
+    getNotificationsForEmail
   )
 where
 
@@ -134,7 +139,7 @@ getNotificationsForEmail email = do
 test :: IO ()
 test = do
   let email = D.mkEmail "gogogo@test.com"
-  let passw = D.mkPassword "1234ABCDefgh"
+  let passw = D.mkPassword "77788XCVqwe"
   let Right auth = do
         eml <- email
         pwd <- passw
