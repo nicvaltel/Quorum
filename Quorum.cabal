@@ -54,6 +54,8 @@ library
     , katip
     , mtl
     , pcre-heavy
+    , postgresql-simple
+    , postgresql-simple-migration
     , record-hasfield
     , stm
     , string-random
@@ -85,6 +87,8 @@ executable Quorum-exe
     , katip
     , mtl
     , pcre-heavy
+    , postgresql-simple
+    , postgresql-simple-migration
     , record-hasfield
     , stm
     , string-random
@@ -117,6 +121,8 @@ test-suite Quorum-test
     , katip
     , mtl
     , pcre-heavy
+    , postgresql-simple
+    , postgresql-simple-migration
     , record-hasfield
     , stm
     , string-random

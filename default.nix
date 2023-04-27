@@ -28,7 +28,7 @@ in
       pkgs.hpack
       pkgs.pcre
       compiler.ghc
-      # pkgs.postgresql
+      pkgs.postgresql
       # pkgs.zlib
       # pkgs.postgresql-contrib
       pkgs.haskellPackages.record-dot-preprocessor
