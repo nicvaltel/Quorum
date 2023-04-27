@@ -32,6 +32,7 @@ dependencies:
 - pcre-heavy
 - data-has
 - string-random
+- katip
 - cryptonite
 
 default-extensions:
@@ -39,6 +40,7 @@ default-extensions:
 - ImportQualifiedPost
 - QuasiQuotes
 - NamedFieldPuns
+- TemplateHaskell
 
 ghc-options:
 - -Wall

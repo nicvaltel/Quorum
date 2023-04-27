@@ -6,18 +6,36 @@ module Lib
 
 import Adapter.InMemory.Auth qualified as M
 import Domain.Auth
-import Control.Concurrent.STM
+    ( mkEmail,
+      mkPassword,
+      getUser,
+      resolveSessionId,
+      login,
+      verifyEmail,
+      register,
+      SessionRepo(..),
+      EmailVerificationNotif(..),
+      AuthRepo(..),
+      Auth(Auth) )
+import Control.Concurrent.STM ( TVar, newTVarIO )
 import Control.Monad.Reader
-import Control.Applicative (Applicative)
-import Domain.Auth (AuthRepo)
-import Control.Monad.State.Lazy (MonadFail)
+    ( ReaderT(..), MonadIO(..), MonadReader )
+import Katip
+import Control.Exception (bracket)
+import GHC.IO.Handle.Internals (mkHandle)
+import System.IO (stdout)
+import Katip.Monadic (KatipContext)
+import Data.Text (Text)
+
 
 type State = TVar M.State
-newtype App a = App {unApp :: ReaderT State IO a}
-    deriving (Functor, Applicative, Monad, MonadReader State, MonadIO, MonadFail)
+newtype App a = App {unApp :: ReaderT State (KatipContextT IO) a}
+    deriving (Functor, Applicative, Monad, MonadReader State, MonadIO, MonadFail, KatipContext, Katip)
 
-run :: State -> App a -> IO a
-run state app = runReaderT (unApp app) state
+run :: LogEnv -> State -> App a -> IO a
+run le state app = 
+    runKatipContextT le () mempty $
+    runReaderT (unApp app) state
 
 
 instance AuthRepo App where
@@ -33,11 +51,21 @@ instance SessionRepo App where
     newSession = M.newSession 
     findUserIdBySessionId = M.findUserIdBySessionId 
 
+withKatip :: (LogEnv ->IO a) -> IO a
+withKatip app = do
+    bracket createLogEnv closeScribes app
+    where
+        createLogEnv = do
+            logEnv <- initLogEnv "Quorum" "dev"
+            stdoutScribe <- mkHandleScribe ColorIfTerminal  stdout (permitItem InfoS) V2
+            registerScribe "stdout" stdoutScribe defaultScribeSettings logEnv
+
+            
 
 testLib :: IO ()
 testLib = do
     state <- newTVarIO M.initialState
-    run state testAction1
+    withKatip $ \le -> run le state testAction1
     pure ()
 
 testAction1 :: App ()

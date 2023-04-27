@@ -1,7 +1,7 @@
 module Adapter.InMemory.Repository where
 
 import System.Posix.Types (UserID)
-import Domain.User (User(User))
+import Domain.User (User)
 import Data.HashMap.Strict (HashMap)
 
 

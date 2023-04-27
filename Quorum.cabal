@@ -43,6 +43,7 @@ library
       ImportQualifiedPost
       QuasiQuotes
       NamedFieldPuns
+      TemplateHaskell
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
@@ -50,6 +51,7 @@ library
     , containers
     , cryptonite
     , data-has
+    , katip
     , mtl
     , pcre-heavy
     , record-hasfield
@@ -71,6 +73,7 @@ executable Quorum-exe
       ImportQualifiedPost
       QuasiQuotes
       NamedFieldPuns
+      TemplateHaskell
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Quorum
@@ -79,6 +82,7 @@ executable Quorum-exe
     , containers
     , cryptonite
     , data-has
+    , katip
     , mtl
     , pcre-heavy
     , record-hasfield
@@ -101,6 +105,7 @@ test-suite Quorum-test
       ImportQualifiedPost
       QuasiQuotes
       NamedFieldPuns
+      TemplateHaskell
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Quorum
@@ -109,6 +114,7 @@ test-suite Quorum-test
     , containers
     , cryptonite
     , data-has
+    , katip
     , mtl
     , pcre-heavy
     , record-hasfield

@@ -38,7 +38,7 @@ import Text.StringRandom (stringRandomIO)
 
 data State = State
   { stateAuths :: [(UserId, Auth)],
-    stateUnverifiedEmails :: Map VerificationCode Email,
+    stateUnverifiedEmails :: Map VerificationCode (UserId, Email),
     stateVerifiedEmails :: Set Email,
     stateUserIdCounter :: Int,
     stateNotifications :: Map Email VerificationCode,
@@ -59,7 +59,7 @@ initialState =
       stateSessions = Map.empty
     }
 
-addAuth :: InMemory r m => Auth -> m (Either RegistrationError VerificationCode)
+addAuth :: InMemory r m => Auth -> m (Either RegistrationError (UserId, VerificationCode))
 addAuth auth = do
   tvar :: TVar State <- asks getter
   vCode <- liftIO $ stringRandomIO "[A-Za-z0-9]{16}"
@@ -70,23 +70,24 @@ addAuth auth = do
     when isDuplicate $ throwError D.RegistrationErrorEmailTaken
     let newUserId = state.stateUserIdCounter + 1
     let newAuths = (newUserId, auth) : state.stateAuths
-    let newUnverifieds = Map.insert vCode auth.authEmail state.stateUnverifiedEmails
+    let newUnverifieds = Map.insert vCode (newUserId, auth.authEmail) state.stateUnverifiedEmails
     let newState = state{stateAuths = newAuths, stateUserIdCounter = newUserId, stateUnverifiedEmails = newUnverifieds}
     lift $ writeTVar tvar newState
-    pure vCode
+    pure (newUserId, vCode)
 
-setEmailAsVerified :: InMemory r m => VerificationCode -> m (Either EmailVerificationError ())
+setEmailAsVerified :: InMemory r m => VerificationCode -> m (Either EmailVerificationError (UserId, Email))
 setEmailAsVerified vCode = do
   tvar :: TVar State <- asks getter
   liftIO . atomically . runExceptT $ do
     state <- lift $ readTVar tvar
-    let mayEmail = Map.lookup vCode state.stateUnverifiedEmails
-    case mayEmail of
+    let mayUsedIdEmail = Map.lookup vCode state.stateUnverifiedEmails
+    case mayUsedIdEmail of
       Nothing -> throwError D.EmailVerificationErrorInvalidCode
-      Just email -> do
+      Just (uId, email) -> do
         let newUnverifiedEmails = Map.delete vCode state.stateUnverifiedEmails
         let newVerifiedEmails = Set.insert email state.stateVerifiedEmails
         lift $ writeTVar tvar state{stateUnverifiedEmails = newUnverifiedEmails, stateVerifiedEmails = newVerifiedEmails}
+        pure (uId, email)
 
 findUserByAuth :: InMemory r m => Auth -> m (Maybe (UserId, Bool))
 findUserByAuth auth = do
