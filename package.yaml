@@ -33,9 +33,15 @@ dependencies:
 - data-has
 - string-random
 - katip
+- unliftio
 - postgresql-simple
 - postgresql-simple-migration
+- resource-pool
+- either
 - cryptonite
+- dotenv
+
+
 
 default-extensions:
 - OverloadedStrings

@@ -19,17 +19,19 @@ in
   pkgs.stdenv.mkDerivation {
     name = "env";
     buildInputs =  [
-      compiler.stack
-      compiler.cabal-install
-      compiler.ghcid
+      # compiler.stack
+      # compiler.cabal-install
+      # compiler.ghcid
       compiler.haskell-language-server
-      compiler.ghcide
+      # compiler.ghcide
       pkgs.ormolu
-      pkgs.hpack
+      # pkgs.hpack
       pkgs.pcre
-      compiler.ghc
+      # compiler.ghc
       pkgs.postgresql
-      # pkgs.zlib
+      pkgs.libpqxx
+      pkgs.zlib
+      pkgs.haskellPackages.postgresql-libpq
       # pkgs.postgresql-contrib
       pkgs.haskellPackages.record-dot-preprocessor
     ];
