@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Lib ( testLib )
+import LibPostrgeSQL ( testLib )
 
 main :: IO ()
 main = testLib
