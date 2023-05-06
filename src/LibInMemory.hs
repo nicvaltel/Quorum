@@ -2,8 +2,6 @@
 module LibInMemory
      where
 
-
-
 import Adapter.InMemory.Auth qualified as M
 import Domain.Auth
     ( mkEmail,
@@ -22,13 +20,10 @@ import Control.Monad.Reader
     ( ReaderT(..), MonadIO(..), MonadReader )
 import Katip
 import Control.Exception (bracket)
-import GHC.IO.Handle.Internals (mkHandle)
 import System.IO (stdout)
-import Katip.Monadic (KatipContext)
-import Data.Text (Text)
 
 
-type State = TVar M.State
+type State = TVar M.AppState
 newtype App a = App {unApp :: ReaderT State (KatipContextT IO) a}
     deriving (Functor, Applicative, Monad, MonadReader State, MonadIO, MonadFail, KatipContext, Katip)
 

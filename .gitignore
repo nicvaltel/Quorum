@@ -4,4 +4,5 @@ db/database.env
 db/postgres/
 default.nix.back
 .gitignore
+db_back/
 *~

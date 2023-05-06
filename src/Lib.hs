@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 
-module LibPostrgeSQL where
+module Lib where
 
 import Adapter.InMemory.Auth qualified as M
 import Adapter.PostgreSQL.Auth qualified as PG
@@ -13,6 +13,7 @@ import Control.Monad.Reader
     MonadReader,
     ReaderT (..),
   )
+import Data.Text (Text)
 import Domain.Auth
   ( Auth (Auth),
     AuthRepo (..),
@@ -28,8 +29,9 @@ import Domain.Auth
   )
 import Katip
 import System.IO (stdout)
+import Adapter.Redis.Auth qualified as Redis
 
-type State = (PG.AppState, TVar M.AppState)
+type State = (PG.AppState, Redis.AppState,  TVar M.AppState)
 
 newtype App a = App {unApp :: ReaderT State (KatipContextT IO) a}
   deriving (Functor, Applicative, Monad, MonadReader State, MonadIO, MonadFail, KatipContext, Katip, MonadThrow)
@@ -49,8 +51,8 @@ instance EmailVerificationNotif App where
   notifyEmailVerification = M.notifyEmailVerification
 
 instance SessionRepo App where
-  newSession = M.newSession
-  findUserIdBySessionId = M.findUserIdBySessionId
+  newSession = Redis.newSession
+  findUserIdBySessionId = Redis.findUserIdBySessionId
 
 withKatip :: (LogEnv -> IO a) -> IO a
 withKatip app = do
@@ -65,7 +67,11 @@ testLib :: IO ()
 testLib = withKatip $ \le -> do
     Right pgCfg <- PG.readDBConfig "db/database.env"
     mState <- newTVarIO M.initialState
-    PG.withAppState pgCfg $ \pgState -> run le (pgState, mState) testAction1
+    PG.withAppState pgCfg $ \pgState -> 
+      Redis.withAppState redisCfg $ \redisState ->
+        run le (pgState, redisState, mState) testAction1
+
+  where redisCfg = "redis://localhost:6379/0"
 
 
 testAction1 :: App ()

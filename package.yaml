@@ -39,8 +39,9 @@ dependencies:
 - resource-pool
 - either
 - exceptions
-- cryptonite
 - dotenv
+- hedis
+# - cryptonite
 
 
 

@@ -6,6 +6,7 @@ services:
     container_name: quorum-db
     ports:
       - "5432:5432"
+      # - "6379:6379"
     env_file:
       - ./db/database.env
     volumes:

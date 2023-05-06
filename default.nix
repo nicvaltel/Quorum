@@ -34,6 +34,7 @@ in
       pkgs.haskellPackages.postgresql-libpq
       # pkgs.postgresql-contrib
       pkgs.haskellPackages.record-dot-preprocessor
+      # pkgs.redis
     ];
 
 }

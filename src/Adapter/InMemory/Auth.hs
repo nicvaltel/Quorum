@@ -6,7 +6,7 @@
 
 module Adapter.InMemory.Auth
   ( 
-    State(..),
+    AppState(..),
     initialState,
     addAuth,
     setEmailAsVerified,
@@ -36,7 +36,7 @@ import Domain.Auth (Auth (Auth, authEmail), Email, EmailVerificationError, Regis
 import Domain.Auth qualified as D
 import Text.StringRandom (stringRandomIO)
 
-data State = State
+data AppState = AppState
   { stateAuths :: [(UserId, Auth)],
     stateUnverifiedEmails :: Map VerificationCode (UserId, Email),
     stateVerifiedEmails :: Set Email,
@@ -46,11 +46,11 @@ data State = State
   }
   deriving (Show, Eq)
 
-type InMemory r m = (Has (TVar State) r, MonadReader r m, MonadIO m)
+type InMemory r m = (Has (TVar AppState) r, MonadReader r m, MonadIO m)
 
-initialState :: State
+initialState :: AppState
 initialState =
-  State
+  AppState
     { stateAuths = [],
       stateUnverifiedEmails = Map.empty,
       stateVerifiedEmails = Set.empty,
@@ -61,7 +61,7 @@ initialState =
 
 addAuth :: InMemory r m => Auth -> m (Either RegistrationError (UserId, VerificationCode))
 addAuth auth = do
-  tvar :: TVar State <- asks getter
+  tvar :: TVar AppState <- asks getter
   vCode <- liftIO $ stringRandomIO "[A-Za-z0-9]{16}"
   liftIO . atomically . runExceptT $ do
     state <- lift $ readTVar tvar
@@ -77,7 +77,7 @@ addAuth auth = do
 
 setEmailAsVerified :: InMemory r m => VerificationCode -> m (Either EmailVerificationError (UserId, Email))
 setEmailAsVerified vCode = do
-  tvar :: TVar State <- asks getter
+  tvar :: TVar AppState <- asks getter
   liftIO . atomically . runExceptT $ do
     state <- lift $ readTVar tvar
     let mayUsedIdEmail = Map.lookup vCode state.stateUnverifiedEmails
@@ -91,7 +91,7 @@ setEmailAsVerified vCode = do
 
 findUserByAuth :: InMemory r m => Auth -> m (Maybe (UserId, Bool))
 findUserByAuth auth = do
-  tvar :: TVar State <- asks getter
+  tvar :: TVar AppState <- asks getter
   state <- liftIO $ readTVarIO tvar
   let mayUserId = lookup auth (map swap state.stateAuths)
   case mayUserId of
@@ -100,13 +100,13 @@ findUserByAuth auth = do
 
 findEmailFromUserId :: InMemory r m => UserId -> m (Maybe Email)
 findEmailFromUserId userId = do
-  tvar :: TVar State <- asks getter
+  tvar :: TVar AppState <- asks getter
   state <- liftIO $ readTVarIO tvar
   pure $ D.authEmail <$> lookup userId state.stateAuths
 
 notifyEmailVerification :: InMemory r m => Email -> VerificationCode -> m ()
 notifyEmailVerification email vCode = do
-  tvar :: TVar State <- asks getter
+  tvar :: TVar AppState <- asks getter
   liftIO $
     atomically $ do
       state <- readTVar tvar
@@ -115,7 +115,7 @@ notifyEmailVerification email vCode = do
 
 newSession :: InMemory r m => UserId -> m SessionId
 newSession userId = do
-  tvar :: TVar State <- asks getter
+  tvar :: TVar AppState <- asks getter
   randStr <- liftIO $ stringRandomIO "[A-Za-z0-9]{16}"
   let sessionId = Text.pack (show userId) <> randStr
   liftIO $
@@ -127,13 +127,13 @@ newSession userId = do
 
 findUserIdBySessionId :: InMemory r m => SessionId -> m (Maybe UserId)
 findUserIdBySessionId sessionId = do
-  tvar :: TVar State <- asks getter
+  tvar :: TVar AppState <- asks getter
   state <- liftIO $ readTVarIO tvar
   pure $ Map.lookup sessionId state.stateSessions
 
 getNotificationsForEmail :: InMemory r m => Email -> m (Maybe VerificationCode)
 getNotificationsForEmail email = do
-  tvar :: TVar State <- asks getter
+  tvar :: TVar AppState <- asks getter
   state <- liftIO $ readTVarIO tvar
   pure $ Map.lookup email state.stateNotifications
 
@@ -156,5 +156,5 @@ test = do
   runTest findUserIdBySessionId s sessionId
   pure ()
   where
-    runTest :: Show b => (a -> ReaderT (TVar State) IO b) -> TVar State -> a -> IO b
+    runTest :: Show b => (a -> ReaderT (TVar AppState) IO b) -> TVar AppState -> a -> IO b
     runTest f s a = runReaderT (f a) s >>= \b -> print b >> pure b
