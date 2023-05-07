@@ -13,7 +13,6 @@ import Control.Monad.Reader
     MonadReader,
     ReaderT (..),
   )
-import Data.Text (Text)
 import Domain.Auth
   ( Auth (Auth),
     AuthRepo (..),
@@ -66,12 +65,11 @@ withKatip app = do
 testLib :: IO ()
 testLib = withKatip $ \le -> do
     Right pgCfg <- PG.readDBConfig "db/database.env"
+    Right redisCfg <- Redis.readRedisConfig "redis/database.env"
     mState <- newTVarIO M.initialState
     PG.withAppState pgCfg $ \pgState -> 
-      Redis.withAppState redisCfg $ \redisState ->
+      Redis.withAppState (show redisCfg) $ \redisState ->
         run le (pgState, redisState, mState) testAction1
-
-  where redisCfg = "redis://localhost:6379/0"
 
 
 testAction1 :: App ()

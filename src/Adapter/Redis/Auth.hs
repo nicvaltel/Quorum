@@ -6,7 +6,6 @@
 module Adapter.Redis.Auth where
 
 
-import Domain.Auth qualified as D
 import Text.StringRandom
 import Data.Has
 import Database.Redis qualified as R
@@ -17,10 +16,34 @@ import Domain.Auth (UserId, SessionId)
 import Data.Text.Encoding (encodeUtf8)
 import Data.String (fromString)
 import Data.ByteString.Char8 (readInt)
+import Configuration.Dotenv (parseFile)
+import Data.Either.Combinators (maybeToRight)
 
 type AppState = R.Connection 
 
 type Redis r m = (Has AppState r, MonadReader r m, MonadIO m, MonadThrow m)
+
+data RedisConfig = RedisConfig
+  { redisHost :: String,
+    redisPort :: Int,
+    redisPassword :: String,
+    redisDbNumber :: Int
+  }
+
+instance Show RedisConfig where
+  show RedisConfig{redisHost, redisPort, redisPassword, redisDbNumber} = "redis://" ++ redisHost ++ ":" ++ show redisPort ++ "/" ++ show redisDbNumber
+
+readRedisConfig :: String -> IO (Either String RedisConfig)
+readRedisConfig file = do
+  env <- parseFile file
+  let result :: Either String RedisConfig = do
+        redisHost <- maybeToRight "No Hostname defined" (lookup "REDIS_HOST" env)
+        redisPort <- maybeToRight "No port number defined" (read @Int <$> lookup "REDIS_PORT" env)
+        redisPassword <- maybeToRight "No password defined" (lookup "REDIS_PASSWORD" env)
+        redisPort <- maybeToRight "No port number defined" (read <$> lookup "REDIS_PORT" env)
+        redisDbNumber <- maybeToRight "No redis DB number defined" (read <$> lookup "REDIS_SELECT_DB" env) 
+        pure RedisConfig {redisHost, redisPort, redisPassword, redisDbNumber}
+  pure result
 
 -- | Create state from redis url string.
 -- format: redis://user:pass@host:port/db

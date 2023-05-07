@@ -41,6 +41,7 @@ dependencies:
 - exceptions
 - dotenv
 - hedis
+- amqp
 # - cryptonite
 
 

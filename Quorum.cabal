@@ -45,7 +45,8 @@ library
   default-extensions: OverloadedStrings ImportQualifiedPost QuasiQuotes NamedFieldPuns TemplateHaskell
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      base >=4.7 && <5
+      amqp
+    , base >=4.7 && <5
     , bytestring
     , containers
     , data-has
@@ -78,6 +79,7 @@ executable Quorum-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Quorum
+    , amqp
     , base >=4.7 && <5
     , bytestring
     , containers
@@ -112,6 +114,7 @@ test-suite Quorum-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Quorum
+    , amqp
     , base >=4.7 && <5
     , bytestring
     , containers
