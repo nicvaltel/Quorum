@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  database:
+    build: ./
+    container_name: quorum-redis
+    ports:
+      - "6668:6379"
+    env_file:
+      - ./database.env
+    # volumes:
+    #   - ./postgres:/var/lib/postgresql/data

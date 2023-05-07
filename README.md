@@ -4,7 +4,7 @@
 $ sudo service postgresql stop
 
 2.
-$ docker-compose up
+$ sudo docker-compose up
 
 
 

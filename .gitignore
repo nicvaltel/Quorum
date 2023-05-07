@@ -2,6 +2,7 @@
 dist-newstyle/
 db/database.env
 db/postgres/
+redis/database.env
 default.nix.back
 .gitignore
 db_back/
