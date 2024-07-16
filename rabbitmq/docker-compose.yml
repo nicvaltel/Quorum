@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+  rabbitmq:
+    build: ./
+    container_name: quorum-rabbitmq
+    env_file:
+      - ./database.env
+    ports:
+      - "5672:5672"

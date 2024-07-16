@@ -2,17 +2,15 @@ import os
 import subprocess
 
 
-os.system('sudo service postgresql stop')
-os.system('sudo service redis-server stop')
-# os.system('sudo docker-compose build')
-# os.system('sudo docker-compose up')
+# os.system('sudo service postgresql stop')
+# os.system('sudo service redis-server stop')
+# os.system('sudo  service rabbitmq-server stop')
 
 processes = []
 
-p_db = subprocess.Popen(['sudo', 'docker-compose', 'up'], cwd='./db')
-processes.append(p_db)
-p_redis = subprocess.Popen(['sudo', 'docker-compose', 'up'], cwd='./redis')
-processes.append(p_redis)
+processes.append(subprocess.Popen(['docker-compose', 'up'], cwd='./db'))
+processes.append(subprocess.Popen(['docker-compose', 'up'], cwd='./redis'))
+processes.append(subprocess.Popen(['docker-compose', 'up'], cwd='./rabbitmq'))
 
 for p in processes:
     p.wait()

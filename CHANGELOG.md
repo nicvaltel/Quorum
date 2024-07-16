@@ -1,4 +1,4 @@
-# Changelog for `Quorum`
+# Changelog for `BanananBack`
 
 All notable changes to this project will be documented in this file.
 

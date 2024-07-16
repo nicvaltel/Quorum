@@ -1,36 +1,35 @@
-module Domain.Validation 
-(
-  validate,
-  regexMatches,
-  lengthBetween,
-  rangeBetween
-) where
+module Domain.Validation
+  ( Validation
+  , validate
+  , rangeBetween
+  , lengthBetween
+  , regexMatches
+  ) where
 
-
+import Reexport
+import qualified ClassyPrelude as CP
 import Text.Regex.PCRE.Heavy
-import Data.Text (Text)
-import Data.Maybe (catMaybes)
-import GHC.Exts (IsList (toList))
 
-type Validataion e a = a -> Maybe e
 
-validate :: (a -> b) -> [Validataion e a] -> a -> Either [e] b
+type Validation e a = a -> Maybe e
+
+validate :: (a -> b) -> [Validation e a] -> a -> Either [e] b
 validate constructor validations val =
-  case catMaybes [f val | f <- validations] of
+  case concatMap (\f -> maybeToList $ f val) validations of
     [] -> Right (constructor val)
     errs -> Left errs
 
+rangeBetween :: Ord a => a -> a -> e -> Validation e a
+rangeBetween minRange maxRange msg = \val ->
+  if val >= minRange && val <= maxRange 
+    then Nothing
+    else Just msg
 
-rangeBetween :: (Ord a) => a -> a -> e -> Validataion e a
-rangeBetween minRange maxRange msg val
-  | val >= minRange  && val <= maxRange = Nothing
-  | otherwise = Just msg
-
-lengthBetween :: (IsList a) => Int -> Int -> e -> Validataion e a
-lengthBetween minLen maxLen msg val = rangeBetween minLen maxLen msg (length $ toList val)
+lengthBetween :: MonoFoldable a => Int -> Int -> e -> a -> Maybe e
+lengthBetween minLen maxLen msg = \val -> 
+  rangeBetween minLen maxLen msg (CP.length val)
 
 
-regexMatches :: Regex -> e -> Validataion e Text
-regexMatches regex msg val
-  | val =~ regex = Nothing
-  | otherwise = Just msg
+regexMatches :: Regex -> e -> Validation e Text
+regexMatches regex msg val = 
+  if val =~ regex then Nothing else Just msg

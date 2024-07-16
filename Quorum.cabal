@@ -1,6 +1,6 @@
-cabal-version: 1.12
+cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -11,9 +11,8 @@ homepage:       https://github.com/githubuser/Quorum#readme
 bug-reports:    https://github.com/githubuser/Quorum/issues
 author:         Author name here
 maintainer:     example@example.com
-copyright:      2023 Author name here
-license:        BSD3
-license-file:   LICENSE
+copyright:      2024 Author name here
+license:        BSD-3-Clause
 build-type:     Simple
 extra-source-files:
     README.md
@@ -25,29 +24,38 @@ source-repository head
 
 library
   exposed-modules:
+      Adapter.HTTP.Main
       Adapter.InMemory.Auth
-      Adapter.InMemory.Repository
       Adapter.PostgreSQL.Auth
+      Adapter.RabbitMQ.Auth
+      Adapter.RabbitMQ.Common
       Adapter.Redis.Auth
-      Adapter.Redis.TestRedis
-      Adapter.Repository
       Domain.Auth
-      Domain.Message
-      Domain.User
       Domain.Validation
       Lib
-      LibInMemory
-      LibPostrgeSQL
+      Logging
+      Reexport
+      WebSocketServer
   other-modules:
+      Paths_Quorum
+  autogen-modules:
       Paths_Quorum
   hs-source-dirs:
       src
-  default-extensions: OverloadedStrings ImportQualifiedPost QuasiQuotes NamedFieldPuns TemplateHaskell
+  default-extensions:
+      NoImplicitPrelude
+      OverloadedStrings
+      NamedFieldPuns
+      QuasiQuotes
+      TemplateHaskell
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      amqp
+      aeson
+    , amqp
     , base >=4.7 && <5
     , bytestring
+    , classy-prelude
+    , concurrency
     , containers
     , data-has
     , dotenv
@@ -55,33 +63,44 @@ library
     , exceptions
     , hedis
     , katip
+    , mono-traversable
     , mtl
     , pcre-heavy
     , postgresql-simple
     , postgresql-simple-migration
-    , record-hasfield
     , resource-pool
-    , stm
+    , safe
+    , safe-exceptions
+    , scotty
     , string-random
     , text
     , time
-    , unliftio
-    , unordered-containers
+    , websockets
   default-language: Haskell2010
 
 executable Quorum-exe
   main-is: Main.hs
   other-modules:
       Paths_Quorum
+  autogen-modules:
+      Paths_Quorum
   hs-source-dirs:
       app
-  default-extensions: OverloadedStrings ImportQualifiedPost QuasiQuotes NamedFieldPuns TemplateHaskell
+  default-extensions:
+      NoImplicitPrelude
+      OverloadedStrings
+      NamedFieldPuns
+      QuasiQuotes
+      TemplateHaskell
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Quorum
+    , aeson
     , amqp
     , base >=4.7 && <5
     , bytestring
+    , classy-prelude
+    , concurrency
     , containers
     , data-has
     , dotenv
@@ -89,18 +108,19 @@ executable Quorum-exe
     , exceptions
     , hedis
     , katip
+    , mono-traversable
     , mtl
     , pcre-heavy
     , postgresql-simple
     , postgresql-simple-migration
-    , record-hasfield
     , resource-pool
-    , stm
+    , safe
+    , safe-exceptions
+    , scotty
     , string-random
     , text
     , time
-    , unliftio
-    , unordered-containers
+    , websockets
   default-language: Haskell2010
 
 test-suite Quorum-test
@@ -108,15 +128,25 @@ test-suite Quorum-test
   main-is: Spec.hs
   other-modules:
       Paths_Quorum
+  autogen-modules:
+      Paths_Quorum
   hs-source-dirs:
       test
-  default-extensions: OverloadedStrings ImportQualifiedPost QuasiQuotes NamedFieldPuns TemplateHaskell
+  default-extensions:
+      NoImplicitPrelude
+      OverloadedStrings
+      NamedFieldPuns
+      QuasiQuotes
+      TemplateHaskell
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Quorum
+    , aeson
     , amqp
     , base >=4.7 && <5
     , bytestring
+    , classy-prelude
+    , concurrency
     , containers
     , data-has
     , dotenv
@@ -124,16 +154,17 @@ test-suite Quorum-test
     , exceptions
     , hedis
     , katip
+    , mono-traversable
     , mtl
     , pcre-heavy
     , postgresql-simple
     , postgresql-simple-migration
-    , record-hasfield
     , resource-pool
-    , stm
+    , safe
+    , safe-exceptions
+    , scotty
     , string-random
     , text
     , time
-    , unliftio
-    , unordered-containers
+    , websockets
   default-language: Haskell2010

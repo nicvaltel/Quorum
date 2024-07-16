@@ -6,8 +6,5 @@ cradle:
     - path: "app/Main.hs"
       component: "Quorum:exe:Quorum-exe"
 
-    - path: "app/Paths_Quorum.hs"
-      component: "Quorum:exe:Quorum-exe"
-
     - path: "test"
       component: "Quorum:test:Quorum-test"
