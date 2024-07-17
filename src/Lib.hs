@@ -52,31 +52,19 @@ instance  Articles App where
 --   findUserIdBySessionId = RDS.findUserIdBySessionId
   
 
-runState :: LogEnv -> LibState -> App a -> IO a
-runState le state =
-  runKatipContextT le () mempty 
-  . flip runReaderT state 
-  . unApp
-  
-runState' :: LogEnv -> b -> ReaderT b (KatipContextT m) a -> m a
-runState' le state =
-  runKatipContextT le () mempty 
-  . flip runReaderT state 
-  
-runRoutine :: IO ()
-runRoutine = do
+withLibState :: (LogEnv -> LibState -> IO ()) -> IO ()
+withLibState action = do
   pgCfg <- either error id <$> readDBConfig "db/database.env"
-
   redisCfg <- either error id <$> readRedisConfig "redis/database.env"
+
   withKatip $ \le -> do 
     memState <- newTVarIO Mem.initialState
     PG.withState pgCfg $ \pgState ->
       RDS.withState redisCfg $ \redisState ->
         MQ.withState mqCfg 16 $ \mqState -> do
-          let runner = runState' le (pgState, redisState, mqState, memState) 
-          MQAuth.init mqState runner
-          runner (unApp routine)
-          -- runState le (pgState, redisState, mqState, memState) routine
+          let libState = (pgState, redisState, mqState, memState)
+          action le libState
+
   where
     mqCfg = "amqp://guest:guest@localhost:5672/%2F"
 
@@ -107,6 +95,26 @@ runRoutine = do
             let configUrl :: String  = printf "postgresql://%s:%s@%s:%d/%s" dbUser dbPassword dbHost dbPort dbName 
             pure PG.Config {PG.configUrl = BSC8.pack configUrl, PG.configStripeCount = configStripeCount, PG.configMaxOpenConnPerStripe = dbMaxOpenConnPerStripe, PG.congigIdleConnTimeout = dbIdleConnTimeout}
       pure result
+
+
+runState :: LogEnv -> LibState -> App a -> IO a
+runState le state =
+  runKatipContextT le () mempty 
+  . flip runReaderT state 
+  . unApp
+  
+runState' :: LogEnv -> b -> ReaderT b (KatipContextT m) a -> m a
+runState' le state =
+  runKatipContextT le () mempty 
+  . flip runReaderT state 
+
+runRoutine :: IO ()
+runRoutine = do
+  withLibState $ \le state@(_,_,mqState,_) -> do
+    let runner = runState' le state
+    MQAuth.init mqState runner
+    runner (unApp routine)
+
 
 routine :: App ()
 routine = do
