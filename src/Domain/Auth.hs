@@ -24,13 +24,14 @@ module Domain.Auth
   , register
   , mkEmail
   , mkPassword
-  , postActicleSessionId
+  , postActicle
+  , postComment
   ) where
 
 import Reexport
 import Domain.Validation
 import Text.Regex.PCRE.Heavy
-import Domain.Posts (ArticleError (..), Article (..), ArticleId)
+import Domain.Posts (PostError (..), Article (..), ArticleId, Comment, CommentId)
 
 type VerificationCode = Text
 
@@ -95,7 +96,8 @@ class Monad m => EmailVerificationNotif m where
   notifyEmailVerification :: Email -> VerificationCode -> m ()
 
 class Monad m => Articles m where
-  postActicleUserId :: UserId -> Article -> m (Either ArticleError ArticleId) 
+  postActicleUserId :: UserId -> Article -> m (Either PostError ArticleId) 
+  postCommentUserId :: UserId -> ArticleId -> Comment -> m (Either PostError CommentId)
 
 withUserIdContext :: (KatipContext m) => UserId -> m a -> m a
 withUserIdContext uId = katipAddContext (sl "userId" uId)
@@ -127,12 +129,27 @@ login auth = runExceptT $ do
       pure sId
 
 
-postActicleSessionId :: (SessionRepo m, Articles m)  => SessionId -> Article -> m (Either ArticleError ArticleId) 
-postActicleSessionId sId article = do
+postActicle :: (KatipContext m, SessionRepo m, Articles m)  => SessionId -> Article -> m (Either PostError ArticleId) 
+postActicle sId article = do
   mayUserId <- findUserIdBySessionId sId
   case mayUserId of
-    Nothing -> pure $ Left ArticleErrorSessionInactive
-    Just uId -> postActicleUserId uId article 
+    Nothing -> pure $ Left PostErrorSessionInactive
+    Just uId -> withUserIdContext uId $ do
+      $(logTM) InfoS $ ls (show article) <> " post successfully" 
+      postActicleUserId uId article 
+
+postComment :: (KatipContext m, SessionRepo m, Articles m)  => SessionId -> ArticleId -> Comment -> m (Either PostError CommentId) 
+postComment sId aId comment = do
+  mayUserId <- findUserIdBySessionId sId
+  case mayUserId of
+    Nothing -> pure $ Left PostErrorSessionInactive
+    Just uId -> do
+      result <- postCommentUserId uId aId comment
+      case result of
+        Left err -> pure (Left err)
+        Right cId -> withUserIdContext uId $ do
+          $(logTM) InfoS $ ls (show comment) <> " post successfully" 
+          pure (Right cId)
 
 getUser :: AuthRepo m => UserId -> m (Maybe Email)
 getUser = findEmailFromUserId

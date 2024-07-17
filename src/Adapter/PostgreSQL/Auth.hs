@@ -11,6 +11,7 @@ module Adapter.PostgreSQL.Auth
   , findUserByAuth
   , findEmailFromUserId
   , postActicleUserId
+  , postCommentUserId
   ) where
 
 import Reexport
@@ -21,7 +22,8 @@ import qualified Domain.Auth as D
 import Domain.Auth (Auth(authEmail,authPassword))
 import Data.ByteString (isInfixOf)
 import qualified Data.Text as T
-import Domain.Posts (Article(..), ArticleError(..), ArticleId)
+import qualified Domain.Posts as P
+import Domain.Posts (Article(..), Comment(..))
 import Control.Exception.Safe (MonadThrow)
 
 
@@ -106,15 +108,32 @@ findEmailFromUserId uId = do
     qry = "select cast(email as text) from auths where id = ?"
 
 
-postActicleUserId :: PG r m => D.UserId -> Article -> m (Either ArticleError ArticleId) 
+postActicleUserId :: PG r m => D.UserId -> P.Article -> m (Either P.PostError P.ArticleId) 
 postActicleUserId uId Article{articleHead, articleBody} = do
-      result <- withConn $ \conn -> query conn qry (uId, articleHead, articleBody)
+      result <- withConn $ \conn -> try $ query conn qry (uId, articleHead, articleBody)
       case result of
-        [Only articleId] -> pure (Right articleId)
-        _ -> throwString $ "Should not happen: userId is not in DB: " <> show uId
+        Right [Only articleId] -> pure (Right articleId)
+        Left SqlError{sqlState = state, sqlErrorMsg = msg}
+          | state == "23503" && "articles_user_id_fkey" `isInfixOf` msg -> throwString $ "Should not happen: userId is not in DB: " <> show uId
+        _ -> throwString "postActicleUserId: Unhandled PG exception"
   where
     qry = "insert into articles (user_id, head, body) values (?, ?, ?) returning id"
+    
 
+postCommentUserId :: PG r m => D.UserId -> P.ArticleId -> P.Comment -> m (Either P.PostError P.CommentId)
+postCommentUserId uId aId Comment{commentMessage} = do
+  result <- withConn $ \conn -> try $ query conn qry (uId, aId, commentMessage)
+  case result of
+    Right [Only commentId] -> pure (Right commentId)
+    Left SqlError{sqlState = state, sqlErrorMsg = msg}
+      | state == "23503" && "comments_article_id_fkey" `isInfixOf` msg -> pure $ Left P.CommentPostErrorArticleNotFound
+      | state == "23503" && "comments_user_id_fkey" `isInfixOf` msg -> throwString $ "Should not happen: userId is not in DB: " <> show uId
+    Left err -> throwString ( "Unhandled PG exception: " <> show err)
+
+    _ -> throwString "postCommentUserId: Unhandled PG exception"
+  where
+    qry = "insert into comments (user_id, article_id, message) values (?, ?, ?) returning id"
+  
 
 withPool :: Config -> (State -> IO a) -> IO a
 withPool cfg action = do

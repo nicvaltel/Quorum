@@ -16,3 +16,12 @@ head text not null,
 body text NOT NULL,
 FOREIGN KEY (user_id) REFERENCES auths(id)
 );
+
+CREATE TABLE IF NOT EXISTS comments (
+id bigserial primary key not null,
+user_id bigserial NOT null,
+article_id bigserial not null,
+message text NOT NULL,
+FOREIGN KEY (user_id) REFERENCES auths(id),
+FOREIGN KEY (article_id) REFERENCES articles(id)
+);

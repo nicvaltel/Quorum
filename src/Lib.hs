@@ -21,7 +21,7 @@ import Katip (KatipContextT)
 import Logging (withKatip)
 import qualified Data.ByteString.Char8 as BSC8
 import Control.Exception.Safe (MonadThrow)
-import Domain.Posts (Article(..))
+import qualified Domain.Posts as P
 
 
 
@@ -31,21 +31,22 @@ newtype App a = App { unApp :: ReaderT LibState (KatipContextT IO) a  }
   deriving (Functor, Applicative, Monad, MonadReader LibState, MonadIO, MonadFail, MonadThrow, MonadCatch, KatipContext, Katip)
 
 instance AuthRepo App where
-  addAuth = App . PG.addAuth
-  setEmailAsVerified = App . PG.setEmailAsVerified
-  findUserByAuth = App . PG.findUserByAuth
-  findEmailFromUserId = App . PG.findEmailFromUserId
+  addAuth = PG.addAuth
+  setEmailAsVerified = PG.setEmailAsVerified
+  findUserByAuth = PG.findUserByAuth
+  findEmailFromUserId = PG.findEmailFromUserId
   
 
 instance EmailVerificationNotif App where
-  notifyEmailVerification email = App . MQAuth.notifyEmailVerification email
+  notifyEmailVerification = MQAuth.notifyEmailVerification
 
 instance SessionRepo App where
-  newSession = App . RDS.newSession
-  findUserIdBySessionId = App . RDS.findUserIdBySessionId
+  newSession = RDS.newSession
+  findUserIdBySessionId = RDS.findUserIdBySessionId
 
 instance  Articles App where
-  postActicleUserId sId = App . PG.postActicleUserId sId
+  postActicleUserId = PG.postActicleUserId
+  postCommentUserId = PG.postCommentUserId
 
 -- instance SessionRepo (ReaderT LibState (KatipContextT IO)) where
 --   newSession = RDS.newSession
@@ -130,14 +131,13 @@ routine = do
   Right session <- login auth
   Just uId <- resolveSessionId session
   Just registeredEmail <- getUser uId
-  mayArtileId <- postActicleSessionId session Article{articleHead = "Head2", articleBody = "Body2..."}
-  liftIO $ print (session, uId, registeredEmail, mayArtileId)
+  Right aId <- postActicle session P.Article{P.articleHead = "Head4", P.articleBody = "Body4..."}
+  cId <- postComment session aId P.Comment{P.commentMessage = "Comment Message4..."}
+  cId1 <- postComment session 666 P.Comment{P.commentMessage = "Comment Message4..."}
+  liftIO $ print (session, uId, registeredEmail, aId, cId, cId1)
   where
     pollNotif email = do
       result <- Mem.getNotificationsForEmail email
       case result of
         Nothing -> pollNotif email
         Just vCode -> return vCode
-
-
-
