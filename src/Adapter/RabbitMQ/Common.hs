@@ -1,5 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ConstraintKinds #-}
 module Adapter.RabbitMQ.Common where
 
 import Reexport
@@ -11,7 +12,7 @@ data State = State
   , stateConsumerChan :: Channel
 }
 
-type Rabbit r m a = (MonadIO m, Has State r) => ReaderT r m a
+type Rabbit r m = (Has State r, MonadReader r m, MonadIO m)
 
 withState :: String -> Integer -> (State -> IO a) -> IO a
 withState connUri prefetchCount action = bracket initState destroyState action'
@@ -58,7 +59,7 @@ initConsumer (State _ conChan) queueName handler = do
       else rejectEnv env False
 
 
-publish :: ToJSON a => Text -> Text -> a -> Rabbit r m ()
+publish :: (Rabbit r m, ToJSON a) => Text -> Text -> a ->  m ()
 publish exchange routingKey payload = do
   (State chan _) <- asks getter
   let msg = newMsg {msgBody = encode payload}

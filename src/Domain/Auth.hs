@@ -1,4 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Domain.Auth
   ( Auth(..)
@@ -8,6 +10,7 @@ module Domain.Auth
   , AuthRepo(..)
   , EmailVerificationNotif(..)
   , SessionRepo(..)
+  , Articles(..)
   , EmailVerificationError(..)
   , VerificationCode
   , SessionId
@@ -21,11 +24,13 @@ module Domain.Auth
   , register
   , mkEmail
   , mkPassword
+  , postActicleSessionId
   ) where
 
 import Reexport
 import Domain.Validation
 import Text.Regex.PCRE.Heavy
+import Domain.Posts (ArticleError (..), Article (..), ArticleId)
 
 type VerificationCode = Text
 
@@ -82,13 +87,15 @@ class Monad m => AuthRepo m where
   findUserByAuth :: Auth -> m (Maybe (UserId, Bool)) -- Bool = email is verified
   findEmailFromUserId :: UserId -> m (Maybe Email)
 
-
 class Monad m => SessionRepo m where
   newSession :: UserId -> m SessionId
   findUserIdBySessionId :: SessionId -> m (Maybe UserId)
 
 class Monad m => EmailVerificationNotif m where
   notifyEmailVerification :: Email -> VerificationCode -> m ()
+
+class Monad m => Articles m where
+  postActicleUserId :: UserId -> Article -> m (Either ArticleError ArticleId) 
 
 withUserIdContext :: (KatipContext m) => UserId -> m a -> m a
 withUserIdContext uId = katipAddContext (sl "userId" uId)
@@ -118,6 +125,14 @@ login auth = runExceptT $ do
       sId <- newSession uId
       $(logTM) InfoS $ ls (rawEmail $ authEmail auth) <> " logged in successfully"
       pure sId
+
+
+postActicleSessionId :: (SessionRepo m, Articles m)  => SessionId -> Article -> m (Either ArticleError ArticleId) 
+postActicleSessionId sId article = do
+  mayUserId <- findUserIdBySessionId sId
+  case mayUserId of
+    Nothing -> pure $ Left ArticleErrorSessionInactive
+    Just uId -> postActicleUserId uId article 
 
 getUser :: AuthRepo m => UserId -> m (Maybe Email)
 getUser = findEmailFromUserId

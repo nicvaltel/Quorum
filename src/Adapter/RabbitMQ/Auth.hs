@@ -29,7 +29,7 @@ data EmailVerificationPayload = EmailVerificationPayload
 --   in deriveJSON options ''EmailVerificationPayload)
 
 
-notifyEmailVerification :: D.Email -> D.VerificationCode -> Rabbit r m ()
+notifyEmailVerification :: Rabbit r m => D.Email -> D.VerificationCode -> m ()
 notifyEmailVerification email vCode =
   let payload = EmailVerificationPayload
                 { emailVerificationPayloadEmail = D.rawEmail email
@@ -38,7 +38,7 @@ notifyEmailVerification email vCode =
   in publish "auth" "userRegistered" payload
 
 -- consumerEmailVerification :: (MonadIO m, KatipContext m, MonadCatch m) => (m Bool -> IO Bool) -> Message -> IO Bool
-consumerEmailVerification :: (KatipContext m, MonadCatch m, Has M.MemState r) => (M.InMemory r m Bool -> b) -> Message -> b
+consumerEmailVerification :: (KatipContext m, MonadCatch m, M.InMemory r m) => (m Bool -> b) -> Message -> b
 consumerEmailVerification runner msg = 
   runner $ consumeAndProcess msg handler
     where
@@ -54,7 +54,7 @@ consumerEmailVerification runner msg =
             pure True 
 
 
-init ::  (KatipContext m, MonadCatch m, Has M.MemState r) => State -> (M.InMemory r m Bool -> IO Bool) -> IO ()
+init ::  (KatipContext m, MonadCatch m, M.InMemory r m) => State -> (m Bool -> IO Bool) -> IO ()
 init state runner = do
   initQueue state "verifyEmail" "auth" "userRegistered"
   initConsumer state "verifyEmail" (consumerEmailVerification runner)

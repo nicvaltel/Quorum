@@ -31,6 +31,7 @@ library
       Adapter.RabbitMQ.Common
       Adapter.Redis.Auth
       Domain.Auth
+      Domain.Posts
       Domain.Validation
       Lib
       Logging

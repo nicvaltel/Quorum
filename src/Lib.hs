@@ -2,6 +2,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 
 module Lib (runRoutine) where
 
@@ -14,12 +16,12 @@ import qualified Configuration.Dotenv as Dotenv
 import qualified Adapter.RabbitMQ.Common as MQ
 import qualified Adapter.RabbitMQ.Auth as MQAuth
 import qualified Data.Text as T
-import System.IO (readFile)
 
 import Katip (KatipContextT)
 import Logging (withKatip)
 import qualified Data.ByteString.Char8 as BSC8
 import Control.Exception.Safe (MonadThrow)
+import Domain.Posts (Article(..))
 
 
 
@@ -28,12 +30,12 @@ type LibState = (PG.State, RDS.State, MQ.State, Mem.MemState)
 newtype App a = App { unApp :: ReaderT LibState (KatipContextT IO) a  } 
   deriving (Functor, Applicative, Monad, MonadReader LibState, MonadIO, MonadFail, MonadThrow, MonadCatch, KatipContext, Katip)
 
-
 instance AuthRepo App where
   addAuth = App . PG.addAuth
   setEmailAsVerified = App . PG.setEmailAsVerified
   findUserByAuth = App . PG.findUserByAuth
   findEmailFromUserId = App . PG.findEmailFromUserId
+  
 
 instance EmailVerificationNotif App where
   notifyEmailVerification email = App . MQAuth.notifyEmailVerification email
@@ -42,8 +44,13 @@ instance SessionRepo App where
   newSession = App . RDS.newSession
   findUserIdBySessionId = App . RDS.findUserIdBySessionId
 
+instance  Articles App where
+  postActicleUserId sId = App . PG.postActicleUserId sId
 
-
+-- instance SessionRepo (ReaderT LibState (KatipContextT IO)) where
+--   newSession = RDS.newSession
+--   findUserIdBySessionId = RDS.findUserIdBySessionId
+  
 
 runState :: LogEnv -> LibState -> App a -> IO a
 runState le state =
@@ -71,9 +78,6 @@ runRoutine = do
           runner (unApp routine)
           -- runState le (pgState, redisState, mqState, memState) routine
   where
-    -- App IO -> IO a => ReaderR... -> IO a
-    -- unApp App ... =>  ReaderT
-
     mqCfg = "amqp://guest:guest@localhost:5672/%2F"
 
     readRedisConfig :: String -> IO (Either String String)
@@ -118,7 +122,8 @@ routine = do
   Right session <- login auth
   Just uId <- resolveSessionId session
   Just registeredEmail <- getUser uId
-  liftIO $ print (session, uId, registeredEmail)
+  mayArtileId <- postActicleSessionId session Article{articleHead = "Head2", articleBody = "Body2..."}
+  liftIO $ print (session, uId, registeredEmail, mayArtileId)
   where
     pollNotif email = do
       result <- Mem.getNotificationsForEmail email

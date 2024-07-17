@@ -1,5 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 module Adapter.InMemory.Auth where
 
@@ -10,7 +11,8 @@ import qualified Data.Set as Set
 import Domain.Auth (Auth(authEmail))
 
 type MemState = TVar State
-type InMemory r m a = (MonadIO m, Has MemState r) => ReaderT r m a
+type InMemory r m = (Has (TVar State) r, MonadReader r m, MonadIO m)
+
 
 data State = State 
   { stateAuth :: [(D.UserId, D.Auth)]
@@ -33,14 +35,14 @@ initialState = State
   }
 
 
-findUserIdBySessionId :: D.SessionId -> InMemory r m (Maybe D.UserId)
+findUserIdBySessionId :: InMemory r m => D.SessionId -> m (Maybe D.UserId)
 findUserIdBySessionId sId = do
   tvar <- asks getter
   state <- liftIO $ readTVarIO tvar 
   pure $ Map.lookup sId (stateSessions state)
  
 
-newSession :: D.UserId -> InMemory r m D.SessionId
+newSession :: InMemory r m => D.UserId -> m D.SessionId
 newSession uId = do
   tvar <- asks getter 
   sId <- liftIO $ (tshow uId <>) <$> stringRandomIO "[A-Za-z0-9]{16}"
@@ -52,7 +54,7 @@ newSession uId = do
     writeTVar tvar newState
     pure sId
 
-notifyEmailVerification :: D.Email -> D.VerificationCode -> InMemory r m ()
+notifyEmailVerification :: InMemory r m => D.Email -> D.VerificationCode -> m ()
 notifyEmailVerification email vCode = do
   tvar <- asks getter
   liftIO $ atomically $ do
@@ -62,21 +64,21 @@ notifyEmailVerification email vCode = do
         newState = state {stateNotifications = newNotifications}
     writeTVar tvar newState
 
-getNotificationsForEmail :: D.Email -> InMemory r m (Maybe D.VerificationCode)
+getNotificationsForEmail :: InMemory r m => D.Email -> m (Maybe D.VerificationCode)
 getNotificationsForEmail email = do
   tvar <- asks getter
   state <- liftIO $ readTVarIO tvar
   pure $ Map.lookup email (stateNotifications state)
 
 
-findEmailFromUserId :: D.UserId -> InMemory r m (Maybe D.Email)
+findEmailFromUserId :: InMemory r m => D.UserId -> m (Maybe D.Email)
 findEmailFromUserId uId = do
   tvar <- asks getter
   state <- liftIO $ readTVarIO tvar
   pure $ D.authEmail <$> lookup uId (stateAuth state)
 
 
-findUserByAuth :: D.Auth -> InMemory r m (Maybe (D.UserId, Bool)) -- Bool = email is verified
+findUserByAuth :: InMemory r m => D.Auth -> m (Maybe (D.UserId, Bool)) -- Bool = email is verified
 findUserByAuth auth = do
   tvar <- asks getter
   state <- liftIO $ readTVarIO tvar
@@ -92,7 +94,7 @@ orThrow :: MonadError e m => Maybe a -> e -> m a
 orThrow Nothing e = throwError e
 orThrow (Just a) _ = pure a
 
-setEmailAsVerified :: D.VerificationCode -> InMemory r m (Either D.EmailVerificationError (D.UserId, D.Email))
+setEmailAsVerified :: InMemory r m => D.VerificationCode -> m (Either D.EmailVerificationError (D.UserId, D.Email))
 setEmailAsVerified vCode = do
   tvar <- asks getter
   liftIO $ atomically $ runExceptT $ do
@@ -108,7 +110,7 @@ setEmailAsVerified vCode = do
     lift $ writeTVar tvar newState
     pure (uId, email)
 
-addAuth :: D.Auth -> InMemory r m (Either D.RegistrationError (D.UserId, D.VerificationCode))
+addAuth :: InMemory r m =>  D.Auth -> m (Either D.RegistrationError (D.UserId, D.VerificationCode))
 addAuth auth = do
   tvar <- asks getter
   vCode <- liftIO $ stringRandomIO "[A-Za-z0-9]{16}" 
